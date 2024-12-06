@@ -37,7 +37,7 @@ export const arrivals = pgTable('arrivals', {
 	primaryFlight: varchar('primary_flight', { length: 10 }),
 	carrierType: varchar('carrier_type', { length: 1 }),
 	lastUpdated: timestamp('last_updated', { withTimezone: true })
-		.default(sql`CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Male'`)
+		.default(sql`timezone('Asia/Male', CURRENT_TIMESTAMP)`)
 		.notNull(),
 });
 
@@ -65,7 +65,7 @@ export const departures = pgTable('departures', {
 	primaryFlight: varchar('primary_flight', { length: 10 }),
 	carrierType: varchar('carrier_type', { length: 1 }),
 	lastUpdated: timestamp('last_updated', { withTimezone: true })
-		.default(sql`CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Male'`)
+		.default(sql`timezone('Asia/Male', CURRENT_TIMESTAMP)`)
 		.notNull(),
 });
 
@@ -79,7 +79,20 @@ export const alerts = pgTable('alerts', {
 	date: varchar('date', { length: 8 }).notNull(),
 	isActive: boolean('is_active').default(true).notNull(),
 	createdAt: timestamp('created_at', { withTimezone: true })
-		.default(sql`CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Male'`)
+		.default(sql`timezone('Asia/Male', CURRENT_TIMESTAMP)`)
 		.notNull(),
 	lastNotified: timestamp('last_notified', { withTimezone: true }),
+});
+
+export const alertNotifications = pgTable('alert_notifications', {
+	id: text('id').primaryKey(),
+	alertId: text('alert_id')
+		.references(() => alerts.id)
+		.notNull(),
+	flightNo: varchar('flight_no', { length: 20 }).notNull(),
+	date: varchar('date', { length: 8 }).notNull(),
+	status: varchar('status', { length: 2 }),
+	sentAt: timestamp('sent_at', { withTimezone: true })
+		.default(sql`timezone('Asia/Male', CURRENT_TIMESTAMP)`)
+		.notNull(),
 });

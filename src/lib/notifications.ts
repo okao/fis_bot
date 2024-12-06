@@ -1,5 +1,10 @@
 import { db } from '@/lib/db';
-import { alerts, arrivals, departures } from '@/lib/db/schema';
+import {
+	alerts,
+	arrivals,
+	departures,
+	alertNotifications,
+} from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { sendTelegramMessage } from './telegram';
 
@@ -44,16 +49,31 @@ export async function checkAndSendAlerts() {
 
 		// Check for status changes
 		if (currentFlight.status && currentFlight.status !== lastStatus) {
-			const statusMessage = getStatusMessage(currentFlight.status);
-			await sendTelegramMessage(
-				alert.chatId,
-				`🔔 Flight ${
-					alert.flightNo
-				} Status Update:\n${statusMessage}\n\nGate: ${
-					currentFlight.gate || 'TBA'
-				}`
+			const alreadySent = await hasNotificationBeenSent(
+				alert.id,
+				alert.flightNo,
+				alert.date,
+				currentFlight.status
 			);
-			await updateLastNotified(alert.id);
+
+			if (!alreadySent) {
+				const statusMessage = getStatusMessage(currentFlight.status);
+				await sendTelegramMessage(
+					alert.chatId,
+					`🔔 Flight ${
+						alert.flightNo
+					} Status Update:\n${statusMessage}\n\nGate: ${
+						currentFlight.gate || 'TBA'
+					}`
+				);
+				await recordNotification(
+					alert.id,
+					alert.flightNo,
+					alert.date,
+					currentFlight.status
+				);
+				await updateLastNotified(alert.id);
+			}
 		}
 
 		// Check for upcoming flight (15 minutes before)
@@ -68,15 +88,30 @@ export async function checkAndSendAlerts() {
 				minutesDiff > 0 &&
 				(!lastNotified || isMoreThanHourAgo(lastNotified))
 			) {
-				await sendTelegramMessage(
-					alert.chatId,
-					`⏰ Reminder: Flight ${
-						alert.flightNo
-					} is scheduled in ${minutesDiff} minutes!\n\nGate: ${
-						currentFlight.gate || 'TBA'
-					}`
+				const alreadySent = await hasNotificationBeenSent(
+					alert.id,
+					alert.flightNo,
+					alert.date,
+					'reminder'
 				);
-				await updateLastNotified(alert.id);
+
+				if (!alreadySent) {
+					await sendTelegramMessage(
+						alert.chatId,
+						`⏰ Reminder: Flight ${
+							alert.flightNo
+						} is scheduled in ${minutesDiff} minutes!\n\nGate: ${
+							currentFlight.gate || 'TBA'
+						}`
+					);
+					await recordNotification(
+						alert.id,
+						alert.flightNo,
+						alert.date,
+						'reminder'
+					);
+					await updateLastNotified(alert.id);
+				}
 			}
 		}
 	}
@@ -125,4 +160,41 @@ async function getPreviousStatus(
 ): Promise<string | null> {
 	// You might want to implement a flight history table to track this
 	return null;
+}
+
+async function hasNotificationBeenSent(
+	alertId: string,
+	flightNo: string,
+	date: string,
+	status: string | null
+): Promise<boolean> {
+	const existing = await db
+		.select()
+		.from(alertNotifications)
+		.where(
+			and(
+				eq(alertNotifications.alertId, alertId),
+				eq(alertNotifications.flightNo, flightNo),
+				eq(alertNotifications.date, date),
+				eq(alertNotifications.status, status || '')
+			)
+		)
+		.limit(1);
+
+	return existing.length > 0;
+}
+
+async function recordNotification(
+	alertId: string,
+	flightNo: string,
+	date: string,
+	status: string | null
+) {
+	await db.insert(alertNotifications).values({
+		id: `${alertId}_${status || 'reminder'}_${Date.now()}`,
+		alertId,
+		flightNo,
+		date,
+		status,
+	});
 }

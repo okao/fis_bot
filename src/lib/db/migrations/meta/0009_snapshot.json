@@ -1,0 +1,497 @@
+{
+  "id": "227b1edf-eb5b-4e26-8f01-899a7f46d8fe",
+  "prevId": "0fa1a09b-31ab-453a-b8c5-4f3681e83a50",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.alert_notifications": {
+      "name": "alert_notifications",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "alert_id": {
+          "name": "alert_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "flight_no": {
+          "name": "flight_no",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "date": {
+          "name": "date",
+          "type": "varchar(8)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "varchar(2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sent_at": {
+          "name": "sent_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "timezone('Asia/Male', CURRENT_TIMESTAMP)"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "alert_notifications_alert_id_alerts_id_fk": {
+          "name": "alert_notifications_alert_id_alerts_id_fk",
+          "tableFrom": "alert_notifications",
+          "tableTo": "alerts",
+          "columnsFrom": [
+            "alert_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.alerts": {
+      "name": "alerts",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "chat_id": {
+          "name": "chat_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "username": {
+          "name": "username",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "first_name": {
+          "name": "first_name",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "flight_no": {
+          "name": "flight_no",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "date": {
+          "name": "date",
+          "type": "varchar(8)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_active": {
+          "name": "is_active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "timezone('Asia/Male', CURRENT_TIMESTAMP)"
+        },
+        "last_notified": {
+          "name": "last_notified",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.arrivals": {
+      "name": "arrivals",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "flight_id": {
+          "name": "flight_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "airline_id": {
+          "name": "airline_id",
+          "type": "varchar(10)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "airline_name": {
+          "name": "airline_name",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "flight_no": {
+          "name": "flight_no",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "route1": {
+          "name": "route1",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "route2": {
+          "name": "route2",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "route3": {
+          "name": "route3",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "route4": {
+          "name": "route4",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "route5": {
+          "name": "route5",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "route6": {
+          "name": "route6",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "scheduled": {
+          "name": "scheduled",
+          "type": "varchar(5)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "estimated": {
+          "name": "estimated",
+          "type": "varchar(5)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "varchar(2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "gate": {
+          "name": "gate",
+          "type": "varchar(10)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "terminal": {
+          "name": "terminal",
+          "type": "varchar(10)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "checkin_area": {
+          "name": "checkin_area",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "date": {
+          "name": "date",
+          "type": "varchar(8)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "primary_flight": {
+          "name": "primary_flight",
+          "type": "varchar(10)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "carrier_type": {
+          "name": "carrier_type",
+          "type": "varchar(1)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_updated": {
+          "name": "last_updated",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "timezone('Asia/Male', CURRENT_TIMESTAMP)"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "arrivals_flight_id_flights_id_fk": {
+          "name": "arrivals_flight_id_flights_id_fk",
+          "tableFrom": "arrivals",
+          "tableTo": "flights",
+          "columnsFrom": [
+            "flight_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.departures": {
+      "name": "departures",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "flight_id": {
+          "name": "flight_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "airline_id": {
+          "name": "airline_id",
+          "type": "varchar(10)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "airline_name": {
+          "name": "airline_name",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "flight_no": {
+          "name": "flight_no",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "route1": {
+          "name": "route1",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "route2": {
+          "name": "route2",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "route3": {
+          "name": "route3",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "route4": {
+          "name": "route4",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "route5": {
+          "name": "route5",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "route6": {
+          "name": "route6",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "scheduled": {
+          "name": "scheduled",
+          "type": "varchar(5)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "estimated": {
+          "name": "estimated",
+          "type": "varchar(5)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "varchar(2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "gate": {
+          "name": "gate",
+          "type": "varchar(10)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "terminal": {
+          "name": "terminal",
+          "type": "varchar(10)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "checkin_area": {
+          "name": "checkin_area",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "date": {
+          "name": "date",
+          "type": "varchar(8)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "primary_flight": {
+          "name": "primary_flight",
+          "type": "varchar(10)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "carrier_type": {
+          "name": "carrier_type",
+          "type": "varchar(1)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_updated": {
+          "name": "last_updated",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "timezone('Asia/Male', CURRENT_TIMESTAMP)"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "departures_flight_id_flights_id_fk": {
+          "name": "departures_flight_id_flights_id_fk",
+          "tableFrom": "departures",
+          "tableTo": "flights",
+          "columnsFrom": [
+            "flight_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.flights": {
+      "name": "flights",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "airline": {
+          "name": "airline",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "flight_no": {
+          "name": "flight_no",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}
