@@ -225,14 +225,16 @@ export default function SearchPage() {
 									No arrival flights found
 								</p>
 							) : (
-								flights.arrivals.map((flight) => (
-									<FlightCard
-										key={`${flight.flightNo}_${date}`}
-										flight={flight}
-										type="arrival"
-										setFlights={setFlights}
-									/>
-								))
+								sortFlightsByCompletion(flights.arrivals).map(
+									(flight) => (
+										<FlightCard
+											key={`${flight.flightNo}_${date}`}
+											flight={flight}
+											type="arrival"
+											setFlights={setFlights}
+										/>
+									)
+								)
 							)}
 						</TabsContent>
 
@@ -242,14 +244,16 @@ export default function SearchPage() {
 									No departure flights found
 								</p>
 							) : (
-								flights.departures.map((flight) => (
-									<FlightCard
-										key={`${flight.flightNo}_${date}`}
-										flight={flight}
-										type="departure"
-										setFlights={setFlights}
-									/>
-								))
+								sortFlightsByCompletion(flights.departures).map(
+									(flight) => (
+										<FlightCard
+											key={`${flight.flightNo}_${date}`}
+											flight={flight}
+											type="departure"
+											setFlights={setFlights}
+										/>
+									)
+								)
 							)}
 						</TabsContent>
 					</Tabs>
@@ -298,9 +302,14 @@ function FlightCard({
 		}
 
 		setIsUpdating(true);
+		const previousState = isAlertSet;
+
+		// Optimistic update
+		setIsAlertSet(!isAlertSet);
+
 		try {
 			const response = await fetch('/api/alerts', {
-				method: isAlertSet ? 'DELETE' : 'POST',
+				method: previousState ? 'DELETE' : 'POST',
 				headers: {
 					'Content-Type': 'application/json',
 				},
@@ -324,18 +333,24 @@ function FlightCard({
 				const data = await searchRes.json();
 				setFlights(data);
 
-				setIsAlertSet(!isAlertSet);
 				toast.success(
-					isAlertSet
+					previousState
 						? 'Alert removed successfully'
 						: 'Alert set successfully'
 				);
+			} else {
+				// Revert on failure
+				setIsAlertSet(previousState);
+				throw new Error('Failed to update alert');
 			}
 		} catch (error) {
+			// Revert on error
+			setIsAlertSet(previousState);
 			console.error('Error toggling alert:', error);
 			toast.error('Failed to update alert');
+		} finally {
+			setIsUpdating(false);
 		}
-		setIsUpdating(false);
 	};
 
 	const getStatusText = (status: string | null) => {
@@ -356,18 +371,23 @@ function FlightCard({
 			LA: 'Landed',
 		};
 
+		const completedStatuses = ['DP', 'DE', 'AR', 'LA'];
+		if (completedStatuses.includes(status)) {
+			return `✅ ${statusMap[status]}`;
+		}
+
 		return statusMap[status] || status;
 	};
 
 	const getStatusColor = (status: string | null) => {
 		if (!status) return 'text-blue-600 bg-blue-50 border-blue-100';
 
+		const completedStatuses = ['DP', 'DE', 'AR', 'LA'];
+		if (completedStatuses.includes(status)) {
+			return 'text-gray-600 bg-gray-50 border-gray-100';
+		}
+
 		switch (status) {
-			case 'DP':
-			case 'DE':
-			case 'AR':
-			case 'LA':
-				return 'text-green-600 bg-green-50 border-green-100';
 			case 'DL':
 				return 'text-amber-600 bg-amber-50 border-amber-100';
 			case 'CN':
@@ -421,7 +441,7 @@ function FlightCard({
 			whileHover={{ y: -2 }}
 			className={`p-4 border rounded-xl shadow-sm transition-all backdrop-blur-sm ${
 				isAlertSet
-					? 'bg-gradient-to-r from-emerald-50/80 to-emerald-50/50 border-emerald-200 hover:shadow-emerald-100/50'
+					? 'bg-gradient-to-r from-emerald-200/90 to-emerald-100/80 border-emerald-300 hover:shadow-emerald-200/50 hover:from-emerald-200 hover:to-emerald-100'
 					: 'bg-white/80 border-gray-100 hover:shadow-md'
 			}`}
 		>
@@ -513,4 +533,19 @@ function FlightCard({
 			</div>
 		</motion.div>
 	);
+}
+
+function sortFlightsByCompletion(flights: Flight[]) {
+	const completedStatuses = ['DP', 'DE', 'AR', 'LA'];
+
+	return [...flights].sort((a, b) => {
+		const isCompletedA =
+			a.status && completedStatuses.includes(a.status);
+		const isCompletedB =
+			b.status && completedStatuses.includes(b.status);
+
+		if (isCompletedA && !isCompletedB) return 1; // Push completed to end
+		if (!isCompletedA && isCompletedB) return -1; // Keep non-completed at start
+		return 0; // Keep relative order for same completion status
+	});
 }

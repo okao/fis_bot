@@ -9,10 +9,25 @@ import { eq, and } from 'drizzle-orm';
 import { sendTelegramMessage } from './telegram';
 
 export async function checkAndSendAlerts() {
-	const activeAlerts = await db
-		.select()
-		.from(alerts)
-		.where(eq(alerts.isActive, true));
+	//check if node env is production
+	const isProduction = process.env.NODE_ENV === 'production';
+
+	let activeAlerts;
+
+	if (isProduction) {
+		activeAlerts = await db
+			.select()
+			.from(alerts)
+			.where(eq(alerts.isActive, true));
+	} else {
+		activeAlerts = await db
+			.select()
+			.from(alerts)
+			.where(
+				and(eq(alerts.isActive, true), eq(alerts.username, 'p6mvp'))
+			)
+			.limit(10);
+	}
 
 	for (const alert of activeAlerts) {
 		const flight = await db
@@ -78,7 +93,7 @@ export async function checkAndSendAlerts() {
 			}
 		}
 
-		// Check for estimated time
+		// Check for estimated time and arrival time
 		if (currentFlight.estimated) {
 			const estimatedTime = parseTime(currentFlight.estimated);
 			const now = new Date();
