@@ -3,7 +3,6 @@ export const dynamic = 'force-dynamic';
 export const fetchCache = 'force-no-store';
 
 import { Bot, webhookCallback } from 'grammy';
-import { KeyboardButton } from 'grammy/types';
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
 
@@ -14,33 +13,96 @@ if (!token)
 
 const bot = new Bot(token);
 
-// Define the web app URL - replace with your actual web app URL
-// const webAppUrl = 'https://fis.oala.dev/search';
+// Define the web app URL
 const webAppUrl = `${process.env.NEXT_PUBLIC_URL}/search`;
 
-bot.command('search', async (ctx) => {
-	const keyboard = {
-		keyboard: [
-			[
-				{
-					text: '🔍 Open Search',
-					web_app: { url: webAppUrl },
-				} as KeyboardButton,
-			],
-		],
-		resize_keyboard: true,
-	};
-
-	await ctx.reply('Click the button below to open search:', {
-		reply_markup: keyboard,
-	});
+// Welcome message when user starts the bot
+bot.command('start', async (ctx) => {
+	await ctx.reply(
+		'👋 Welcome to Flight Information System!\n\n' +
+			'I can help you:\n' +
+			'• Search for flights\n' +
+			'• Set flight alerts\n' +
+			'• Track flight status\n\n' +
+			'Use /flights to start searching.',
+		{
+			parse_mode: 'HTML',
+			reply_markup: {
+				inline_keyboard: [
+					[
+						{
+							text: '✈️ Search Flights',
+							web_app: { url: webAppUrl },
+						},
+					],
+					[
+						{
+							text: '❓ Help',
+							callback_data: 'help',
+						},
+					],
+				],
+			},
+		}
+	);
 });
 
-// Keep the echo functionality for other messages
-bot.on('message:text', async (ctx) => {
-	if (!ctx.message.text.startsWith('/')) {
-		await ctx.reply(ctx.message.text);
-	}
+// Main flight search command
+bot.command(['search', 'flights'], async (ctx) => {
+	await ctx.reply(
+		'🔍 <b>Flight Search</b>\n\n' +
+			'Click below to:\n' +
+			'• Search flights\n' +
+			'• Set alerts\n' +
+			'• Track status',
+		{
+			parse_mode: 'HTML',
+			reply_markup: {
+				inline_keyboard: [
+					[
+						{
+							text: '✈️ Open Flight Search',
+							web_app: { url: webAppUrl },
+						},
+					],
+				],
+			},
+		}
+	);
 });
 
+// Help command
+bot.command('help', async (ctx) => {
+	await ctx.reply(
+		'📖 <b>Available Commands</b>\n\n' +
+			'/flights - Search flights and set alerts\n' +
+			'/help - Show this help message\n\n' +
+			'💡 <b>Tips:</b>\n' +
+			'• Use the search to find specific flights\n' +
+			'• Set alerts to get notified of changes\n' +
+			'• Track multiple flights at once',
+		{
+			parse_mode: 'HTML',
+		}
+	);
+});
+
+// Handle help callback
+bot.callbackQuery('help', async (ctx) => {
+	await ctx.answerCallbackQuery();
+	await ctx.reply(
+		'📖 <b>Available Commands</b>\n\n' +
+			'/flights - Search flights and set alerts\n' +
+			'/help - Show this help message\n\n' +
+			'💡 <b>Tips:</b>\n' +
+			'• Use the search to find specific flights\n' +
+			'• Set alerts to get notified of changes\n' +
+			'• Track multiple flights at once',
+		{
+			parse_mode: 'HTML',
+		}
+	);
+});
+
+// Remove echo functionality
 export const POST = webhookCallback(bot, 'std/http');

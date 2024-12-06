@@ -17,13 +17,16 @@
     "@xmldom/xmldom": "^0.9.6",
     "date-fns": "^4.1.0",
     "drizzle-orm": "^0.37.0",
+    "framer-motion": "^11.13.1",
     "grammy": "^1.33.0",
+    "lucide-react": "^0.468.0",
     "next": "15.0.3",
     "node-cron": "^3.0.3",
     "node-html-parser": "^6.1.13",
     "postgres": "^3.4.5",
     "react": "19.0.0-rc-66855b96-20241106",
-    "react-dom": "19.0.0-rc-66855b96-20241106"
+    "react-dom": "19.0.0-rc-66855b96-20241106",
+    "react-hot-toast": "^2.4.1"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20241205.0",

@@ -1,8 +1,10 @@
+import { sql } from 'drizzle-orm';
 import {
 	pgTable,
 	text,
 	timestamp,
 	varchar,
+	boolean,
 } from 'drizzle-orm/pg-core';
 
 export const flights = pgTable('flights', {
@@ -34,7 +36,9 @@ export const arrivals = pgTable('arrivals', {
 	date: varchar('date', { length: 8 }),
 	primaryFlight: varchar('primary_flight', { length: 10 }),
 	carrierType: varchar('carrier_type', { length: 1 }),
-	lastUpdated: timestamp('last_updated').defaultNow(),
+	lastUpdated: timestamp('last_updated', { withTimezone: true })
+		.default(sql`CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Male'`)
+		.notNull(),
 });
 
 export const departures = pgTable('departures', {
@@ -60,5 +64,22 @@ export const departures = pgTable('departures', {
 	date: varchar('date', { length: 8 }),
 	primaryFlight: varchar('primary_flight', { length: 10 }),
 	carrierType: varchar('carrier_type', { length: 1 }),
-	lastUpdated: timestamp('last_updated').defaultNow(),
+	lastUpdated: timestamp('last_updated', { withTimezone: true })
+		.default(sql`CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Male'`)
+		.notNull(),
+});
+
+export const alerts = pgTable('alerts', {
+	id: text('id').primaryKey(),
+	userId: text('user_id').notNull(),
+	chatId: text('chat_id').notNull(),
+	username: varchar('username', { length: 100 }),
+	firstName: varchar('first_name', { length: 100 }),
+	flightNo: varchar('flight_no', { length: 20 }).notNull(),
+	date: varchar('date', { length: 8 }).notNull(),
+	isActive: boolean('is_active').default(true).notNull(),
+	createdAt: timestamp('created_at', { withTimezone: true })
+		.default(sql`CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Male'`)
+		.notNull(),
+	lastNotified: timestamp('last_notified', { withTimezone: true }),
 });
