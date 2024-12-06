@@ -9,14 +9,12 @@ import { eq, and } from 'drizzle-orm';
 import { sendTelegramMessage } from './telegram';
 
 export async function checkAndSendAlerts() {
-	// Get all active alerts
 	const activeAlerts = await db
 		.select()
 		.from(alerts)
 		.where(eq(alerts.isActive, true));
 
 	for (const alert of activeAlerts) {
-		// Check both arrivals and departures
 		const flight = await db
 			.select()
 			.from(arrivals)
@@ -41,22 +39,25 @@ export async function checkAndSendAlerts() {
 		if (!flight.length) continue;
 		const currentFlight = flight[0];
 
-		// Get previous notification details
-		const lastNotified = alert.lastNotified;
-		const lastStatus = lastNotified
-			? await getPreviousStatus(currentFlight.id)
-			: null;
-
 		// Check for status changes
-		if (currentFlight.status && currentFlight.status !== lastStatus) {
-			const alreadySent = await hasNotificationBeenSent(
-				alert.id,
+		if (currentFlight.status) {
+			// Check if this specific status has been sent to this user
+			const alreadyNotified = await hasNotificationBeenSent(
+				alert.id, // This includes userId in the composite key
 				alert.flightNo,
 				alert.date,
 				currentFlight.status
 			);
 
-			if (!alreadySent) {
+			console.log('Status notification check:', {
+				alertId: alert.id,
+				userId: alert.userId,
+				flightNo: alert.flightNo,
+				currentStatus: currentFlight.status,
+				alreadyNotified,
+			});
+
+			if (!alreadyNotified) {
 				const statusMessage = getStatusMessage(currentFlight.status);
 				await sendTelegramMessage(
 					alert.chatId,
@@ -66,51 +67,67 @@ export async function checkAndSendAlerts() {
 						currentFlight.gate || 'TBA'
 					}`
 				);
+
+				// Record this notification for this specific user
 				await recordNotification(
-					alert.id,
+					alert.id, // Contains userId
 					alert.flightNo,
 					alert.date,
 					currentFlight.status
 				);
-				await updateLastNotified(alert.id);
 			}
 		}
 
-		// Check for upcoming flight (15 minutes before)
+		// Check for estimated time
 		if (currentFlight.estimated) {
 			const estimatedTime = parseTime(currentFlight.estimated);
 			const now = new Date();
 			const timeDiff = estimatedTime.getTime() - now.getTime();
 			const minutesDiff = Math.floor(timeDiff / (1000 * 60));
 
-			if (
-				minutesDiff <= 15 &&
-				minutesDiff > 0 &&
-				(!lastNotified || isMoreThanHourAgo(lastNotified))
-			) {
-				const alreadySent = await hasNotificationBeenSent(
-					alert.id,
-					alert.flightNo,
-					alert.date,
-					'reminder'
-				);
+			// Different notification types based on time
+			const notificationTypes = [
+				{ minutes: 60, type: 'reminder_60' },
+				{ minutes: 30, type: 'reminder_30' },
+				{ minutes: 15, type: 'reminder_15' },
+			];
 
-				if (!alreadySent) {
-					await sendTelegramMessage(
-						alert.chatId,
-						`⏰ Reminder: Flight ${
-							alert.flightNo
-						} is scheduled in ${minutesDiff} minutes!\n\nGate: ${
-							currentFlight.gate || 'TBA'
-						}`
-					);
-					await recordNotification(
+			const ltMinutes = 5;
+
+			for (const { minutes, type } of notificationTypes) {
+				if (
+					minutesDiff <= minutes &&
+					minutesDiff > minutes - ltMinutes
+				) {
+					const alreadyNotified = await hasNotificationBeenSent(
 						alert.id,
 						alert.flightNo,
 						alert.date,
-						'reminder'
+						type
 					);
-					await updateLastNotified(alert.id);
+
+					console.log('alreadyNotified', [
+						minutes,
+						type,
+						alreadyNotified,
+					]);
+
+					if (!alreadyNotified) {
+						await sendTelegramMessage(
+							alert.chatId,
+							`⏰ Reminder: Flight ${
+								alert.flightNo
+							} is scheduled in ${minutes} minutes!\n\nGate: ${
+								currentFlight.gate || 'TBA'
+							}`
+						);
+						await recordNotification(
+							alert.id,
+							alert.flightNo,
+							alert.date,
+							type
+						);
+					}
 				}
 			}
 		}
@@ -143,37 +160,26 @@ function parseTime(timeString: string): Date {
 	return date;
 }
 
-function isMoreThanHourAgo(date: Date): boolean {
-	return new Date().getTime() - date.getTime() > 60 * 60 * 1000;
-}
-
-async function updateLastNotified(alertId: string) {
-	await db
-		.update(alerts)
-		.set({ lastNotified: new Date() })
-		.where(eq(alerts.id, alertId));
-}
-
-async function getPreviousStatus(
-	// eslint-disable-next-line @typescript-eslint/no-unused-vars
-	flightId: string
-): Promise<string | null> {
-	// You might want to implement a flight history table to track this
-	return null;
-}
-
 async function hasNotificationBeenSent(
 	alertId: string,
 	flightNo: string,
 	date: string,
 	status: string | null
 ): Promise<boolean> {
+	const alert = await db
+		.select()
+		.from(alerts)
+		.where(eq(alerts.id, alertId))
+		.limit(1);
+
+	if (!alert.length) return false;
+
 	const existing = await db
 		.select()
 		.from(alertNotifications)
 		.where(
 			and(
-				eq(alertNotifications.alertId, alertId),
+				eq(alertNotifications.userId, alert[0].userId),
 				eq(alertNotifications.flightNo, flightNo),
 				eq(alertNotifications.date, date),
 				eq(alertNotifications.status, status || '')
@@ -190,11 +196,36 @@ async function recordNotification(
 	date: string,
 	status: string | null
 ) {
-	await db.insert(alertNotifications).values({
-		id: `${alertId}_${status || 'reminder'}_${Date.now()}`,
+	const alert = await db
+		.select()
+		.from(alerts)
+		.where(eq(alerts.id, alertId))
+		.limit(1);
+
+	if (!alert.length) return;
+
+	console.log('Recording notification:', {
 		alertId,
+		userId: alert[0].userId,
+		chatId: alert[0].chatId,
 		flightNo,
 		date,
 		status,
 	});
+
+	// return;
+
+	await db.insert(alertNotifications).values({
+		id: `${alertId}_${status || 'reminder'}_${
+			alert[0].userId
+		}_${Date.now()}`,
+		alertId,
+		userId: alert[0].userId,
+		chatId: alert[0].chatId,
+		flightNo,
+		date,
+		status,
+	});
+
+	return true;
 }

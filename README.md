@@ -26,9 +26,22 @@ bunx drizzle-kit generate --config=drizzle.config.ts
 bun run src/lib/db/migrate.ts
 ```
 
+# Telegram Bot
 
-# Telegram Bot (HOW TO SET WEBHOOK)
+## To set the webhook, run the following command:
 
 ```bash
 curl https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/setWebhook\?url\={NEXT_PUBLIC_URL}/api/bot
+```
+
+## To remove the webhook, run the following command:
+
+```bash
+curl https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/deleteWebhook
+```
+
+## To get Information about the webhook, run the following command:
+
+```bash
+curl https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/getWebhookInfo
 ```

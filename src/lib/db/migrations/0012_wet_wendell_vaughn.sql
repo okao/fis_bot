@@ -1,0 +1,1 @@
+ALTER TABLE "alert_notifications" ALTER COLUMN "status" SET DATA TYPE varchar(20);

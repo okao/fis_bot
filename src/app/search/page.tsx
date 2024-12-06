@@ -6,6 +6,12 @@ import { Bell, BellRing } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useTelegram } from '@/lib/hooks/useTelegram';
 import { motion, AnimatePresence } from 'framer-motion';
+import {
+	Tabs,
+	TabsList,
+	TabsTrigger,
+	TabsContent,
+} from '@/components/ui/tabs';
 
 interface Flight {
 	flightNo: string;
@@ -22,32 +28,11 @@ interface Flight {
 	date: string;
 }
 
-// Add animation variants
-const containerVariants = {
-	hidden: { opacity: 0 },
-	show: {
-		opacity: 1,
-		transition: { staggerChildren: 0.1 },
-	},
-};
-
-const itemVariants = {
-	hidden: { opacity: 0, y: 20 },
-	show: {
-		opacity: 1,
-		y: 0,
-		transition: {
-			type: 'spring',
-			stiffness: 300,
-			damping: 24,
-		},
-	},
-};
-
 export default function SearchPage() {
 	const { user, chatId, isInTelegram } = useTelegram();
 	const [query, setQuery] = useState('');
 	const [date, setDate] = useState(format(new Date(), 'yyyyMMdd'));
+	const [activeTab, setActiveTab] = useState('arrivals');
 	const [flights, setFlights] = useState<{
 		arrivals: Flight[];
 		departures: Flight[];
@@ -115,7 +100,7 @@ export default function SearchPage() {
 		<motion.div
 			initial={{ opacity: 0 }}
 			animate={{ opacity: 1 }}
-			className="min-h-screen bg-gradient-to-b from-blue-50 to-white"
+			className="min-h-screen bg-gradient-to-br from-rose-50 via-white to-red-50"
 		>
 			<div className="container mx-auto px-4 py-8">
 				<AnimatePresence>
@@ -124,11 +109,13 @@ export default function SearchPage() {
 							initial={{ opacity: 0, y: -20 }}
 							animate={{ opacity: 1, y: 0 }}
 							exit={{ opacity: 0, y: -20 }}
-							className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-100"
+							className="mb-6 p-4 bg-gradient-to-r from-red-600 to-rose-500 rounded-xl shadow-lg"
 						>
-							<p className="text-blue-800">
+							<p className="text-white text-lg">
 								👋 Welcome{' '}
-								<span className="font-medium">{user.first_name}</span>
+								<span className="font-semibold">
+									{user.first_name}
+								</span>
 								! Set alerts for flights you want to track.
 							</p>
 						</motion.div>
@@ -136,8 +123,8 @@ export default function SearchPage() {
 				</AnimatePresence>
 
 				<div className="mb-8">
-					<h1 className="text-2xl font-semibold text-gray-800 mb-6 flex items-center">
-						<span className="text-blue-600 mr-2">✈</span>
+					<h1 className="text-3xl font-bold bg-gradient-to-r from-red-600 to-rose-600 text-transparent bg-clip-text mb-6 flex items-center">
+						<span className="text-red-600 mr-2">✈</span>
 						Flight Information
 					</h1>
 					<div className="grid gap-4 md:grid-cols-2">
@@ -146,10 +133,10 @@ export default function SearchPage() {
 							value={query}
 							onChange={(e) => setQuery(e.target.value)}
 							placeholder="Search by flight number, airline, or route..."
-							className="w-full p-3 rounded-md border border-gray-200
-                                     bg-white text-gray-800 placeholder-gray-400
-                                     focus:ring-2 focus:ring-blue-100 focus:border-blue-500
-                                     outline-none transition-all"
+							className="w-full p-4 rounded-xl border border-indigo-100
+									 bg-white/80 backdrop-blur-sm text-gray-800 placeholder-gray-400
+									 focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400
+									 outline-none transition-all shadow-sm hover:border-indigo-200"
 						/>
 						<input
 							type="date"
@@ -162,10 +149,10 @@ export default function SearchPage() {
 								'yyyy-MM-dd'
 							)}
 							onChange={handleDateChange}
-							className="w-full p-3 rounded-md border border-gray-200
+							className="w-full p-4 rounded-xl border border-gray-200
                                      bg-white text-gray-800
-                                     focus:ring-2 focus:ring-blue-100 focus:border-blue-500
-                                     outline-none transition-all"
+                                     focus:ring-2 focus:ring-blue-200 focus:border-blue-500
+                                     outline-none transition-all shadow-sm"
 						/>
 					</div>
 				</div>
@@ -187,56 +174,85 @@ export default function SearchPage() {
 						/>
 					</motion.div>
 				) : (
-					<motion.div
-						variants={containerVariants}
-						initial="hidden"
-						animate="show"
+					<Tabs
+						defaultValue={activeTab}
+						value={activeTab}
+						onValueChange={setActiveTab}
+						className="w-full"
 					>
-						<motion.div variants={itemVariants}>
-							<h2 className="text-lg font-medium text-gray-800 mb-4">
-								<span className="text-green-600 mr-2">🛬</span>{' '}
-								Arrivals
-							</h2>
-							<div className="space-y-3">
-								{flights.arrivals.length === 0 ? (
-									<p className="text-gray-500 text-center py-8 bg-blue-50/50 rounded-lg border border-blue-100">
-										No arrival flights found
-									</p>
-								) : (
-									flights.arrivals.map((flight) => (
-										<FlightCard
-											key={`${flight.flightNo}_${date}`}
-											flight={flight}
-											type="arrival"
-											setFlights={setFlights}
-										/>
-									))
+						<TabsList className="grid w-full grid-cols-2 gap-2 mb-8 p-2">
+							<TabsTrigger
+								value="arrivals"
+								className="relative flex items-center justify-center gap-2 px-6 py-3 rounded-xl transition-all
+										 data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-rose-500 data-[state=active]:text-white data-[state=active]:shadow-md
+										 data-[state=inactive]:bg-white/80 data-[state=inactive]:text-gray-600 data-[state=inactive]:hover:bg-white data-[state=inactive]:shadow-sm"
+							>
+								<span className="text-lg">🛬</span>
+								<span className="font-medium">Arrivals</span>
+								{flights.arrivals.length > 0 && (
+									<span
+										className="ml-2 px-2.5 py-0.5 rounded-full text-xs font-medium
+											 data-[state=active]:bg-white/20 data-[state=active]:text-white
+											 data-[state=inactive]:bg-rose-100 data-[state=inactive]:text-rose-700"
+									>
+										{flights.arrivals.length}
+									</span>
 								)}
-							</div>
-						</motion.div>
-						<motion.div variants={itemVariants}>
-							<h2 className="text-lg font-medium text-gray-800 mb-4">
-								<span className="text-blue-600 mr-2">🛫</span>{' '}
-								Departures
-							</h2>
-							<div className="space-y-3">
-								{flights.departures.length === 0 ? (
-									<p className="text-gray-500 text-center py-8 bg-blue-50/50 rounded-lg border border-blue-100">
-										No departure flights found
-									</p>
-								) : (
-									flights.departures.map((flight) => (
-										<FlightCard
-											key={`${flight.flightNo}_${date}`}
-											flight={flight}
-											type="departure"
-											setFlights={setFlights}
-										/>
-									))
+							</TabsTrigger>
+							<TabsTrigger
+								value="departures"
+								className="relative flex items-center justify-center gap-2 px-6 py-3 rounded-xl transition-all
+										 data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-rose-500 data-[state=active]:text-white data-[state=active]:shadow-md
+										 data-[state=inactive]:bg-white/80 data-[state=inactive]:text-gray-600 data-[state=inactive]:hover:bg-white data-[state=inactive]:shadow-sm"
+							>
+								<span className="text-lg">🛫</span>
+								<span className="font-medium">Departures</span>
+								{flights.departures.length > 0 && (
+									<span
+										className="ml-2 px-2.5 py-0.5 rounded-full text-xs font-medium
+											 data-[state=active]:bg-white/20 data-[state=active]:text-white
+											 data-[state=inactive]:bg-rose-100 data-[state=inactive]:text-rose-700"
+									>
+										{flights.departures.length}
+									</span>
 								)}
-							</div>
-						</motion.div>
-					</motion.div>
+							</TabsTrigger>
+						</TabsList>
+
+						<TabsContent value="arrivals" className="space-y-3">
+							{flights.arrivals.length === 0 ? (
+								<p className="text-gray-500 text-center py-8 bg-blue-50/50 rounded-lg border border-blue-100">
+									No arrival flights found
+								</p>
+							) : (
+								flights.arrivals.map((flight) => (
+									<FlightCard
+										key={`${flight.flightNo}_${date}`}
+										flight={flight}
+										type="arrival"
+										setFlights={setFlights}
+									/>
+								))
+							)}
+						</TabsContent>
+
+						<TabsContent value="departures" className="space-y-3">
+							{flights.departures.length === 0 ? (
+								<p className="text-gray-500 text-center py-8 bg-blue-50/50 rounded-lg border border-blue-100">
+									No departure flights found
+								</p>
+							) : (
+								flights.departures.map((flight) => (
+									<FlightCard
+										key={`${flight.flightNo}_${date}`}
+										flight={flight}
+										type="departure"
+										setFlights={setFlights}
+									/>
+								))
+							)}
+						</TabsContent>
+					</Tabs>
 				)}
 			</div>
 		</motion.div>
@@ -403,10 +419,10 @@ function FlightCard({
 			animate={{ opacity: 1, y: 0 }}
 			exit={{ opacity: 0, y: -20 }}
 			whileHover={{ y: -2 }}
-			className={`p-4 border rounded-lg shadow-sm transition-all ${
+			className={`p-4 border rounded-xl shadow-sm transition-all backdrop-blur-sm ${
 				isAlertSet
-					? 'bg-emerald-50/50 border-emerald-200 hover:shadow-emerald-100'
-					: 'bg-white border-gray-100 hover:shadow-md'
+					? 'bg-gradient-to-r from-emerald-50/80 to-emerald-50/50 border-emerald-200 hover:shadow-emerald-100/50'
+					: 'bg-white/80 border-gray-100 hover:shadow-md'
 			}`}
 		>
 			<div className="flex justify-between items-start">
