@@ -1,0 +1,1 @@
+ALTER TABLE "flights" ALTER COLUMN "flight_no" SET DATA TYPE varchar(20);
