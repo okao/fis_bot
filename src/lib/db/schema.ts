@@ -77,6 +77,7 @@ export const alerts = pgTable('alerts', {
 	firstName: varchar('first_name', { length: 100 }),
 	flightNo: varchar('flight_no', { length: 20 }).notNull(),
 	date: varchar('date', { length: 8 }).notNull(),
+	type: varchar('type', { length: 20 }),
 	isActive: boolean('is_active').default(true).notNull(),
 	createdAt: timestamp('created_at', { withTimezone: true })
 		.default(sql`timezone('Indian/Maldives', CURRENT_TIMESTAMP)`)
@@ -92,6 +93,8 @@ export const alertNotifications = pgTable('alert_notifications', {
 	userId: text('user_id').notNull(),
 	chatId: text('chat_id').notNull(),
 	flightNo: varchar('flight_no', { length: 20 }).notNull(),
+	//nullable type
+	type: varchar('type', { length: 20 }),
 	date: varchar('date', { length: 8 }).notNull(),
 	status: varchar('status', { length: 20 }),
 	sentAt: timestamp('sent_at', { withTimezone: true })

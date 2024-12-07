@@ -4,7 +4,7 @@ import { checkAndSendAlerts } from './notifications';
 
 export function initCron() {
 	// Sync flights every 5 minutes
-	cron.schedule('*/5 * * * *', async () => {
+	cron.schedule('*/30 * * * *', async () => {
 		try {
 			console.log('Starting flight sync...');
 			const result = await syncFlights();

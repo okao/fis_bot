@@ -1,6 +1,4 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
-
-## Getting Started
+# Getting Started
 
 First, run the development server:
 
@@ -14,33 +12,33 @@ pnpm dev
 bun dev
 ```
 
-# After Schema Changes
+## After Schema Changes
 
 ```bash
 bunx drizzle-kit generate --config=drizzle.config.ts
 ```
 
-# Migrate
+## Migrate
 
 ```bash
 bun run src/lib/db/migrate.ts
 ```
 
-# Telegram Bot
+## Telegram Bot
 
-## To set the webhook, run the following command:
+### To set the webhook, run the following command:
 
 ```bash
 curl https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/setWebhook\?url\={NEXT_PUBLIC_URL}/api/bot
 ```
 
-## To remove the webhook, run the following command:
+### To remove the webhook, run the following command:
 
 ```bash
 curl https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/deleteWebhook
 ```
 
-## To get Information about the webhook, run the following command:
+### To get Information about the webhook, run the following command:
 
 ```bash
 curl https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/getWebhookInfo

@@ -37,8 +37,7 @@ export default function SearchPage() {
 		arrivals: Flight[];
 		departures: Flight[];
 	}>({ arrivals: [], departures: [] });
-	const [initialLoading, setInitialLoading] = useState(true);
-	const REFRESH_INTERVAL = 30000; // 30 seconds
+	const [loading, setLoading] = useState(false);
 
 	useEffect(() => {
 		console.log('Search Page Telegram Context:', {
@@ -51,51 +50,35 @@ export default function SearchPage() {
 	}, [isInTelegram, user, chatId]);
 
 	useEffect(() => {
-		const refreshData = async () => {
+		const searchFlights = async () => {
+			setLoading(true);
 			try {
-				// Fetch both arrivals and departures simultaneously
-				const [arrivalsData, departuresData] = await Promise.all([
-					fetch(
-						`/api/search/real?${new URLSearchParams({
-							q: query,
-							date: date,
-							...(isInTelegram && user?.id
-								? { userId: user.id.toString() }
-								: {}),
-							type: 'arrivals',
-						})}`
-					).then((res) => res.json()),
-					fetch(
-						`/api/search/real?${new URLSearchParams({
-							q: query,
-							date: date,
-							...(isInTelegram && user?.id
-								? { userId: user.id.toString() }
-								: {}),
-							type: 'departures',
-						})}`
-					).then((res) => res.json()),
-				]);
-
-				setFlights({
-					arrivals: arrivalsData.arrivals,
-					departures: departuresData.departures,
+				const queryParams = new URLSearchParams({
+					q: query,
+					date: date,
+					...(isInTelegram && user?.id
+						? { userId: user.id.toString() }
+						: {}),
 				});
+
+				console.log('Searching with params:', {
+					query,
+					date,
+					userId: user?.id,
+					isInTelegram,
+				});
+
+				const res = await fetch(`/api/search?${queryParams}`);
+				const data = await res.json();
+				setFlights(data);
 			} catch (error) {
-				console.error('Refresh failed:', error);
-			} finally {
-				setInitialLoading(false);
+				console.error('Search failed:', error);
 			}
+			setLoading(false);
 		};
 
-		// Initial fetch
-		refreshData();
-
-		// Set up polling
-		const intervalId = setInterval(refreshData, REFRESH_INTERVAL);
-
-		// Cleanup
-		return () => clearInterval(intervalId);
+		const debounce = setTimeout(searchFlights, 300);
+		return () => clearTimeout(debounce);
 	}, [query, date, user?.id, isInTelegram]);
 
 	const handleDateChange = (
@@ -174,27 +157,22 @@ export default function SearchPage() {
 					</div>
 				</div>
 
-				{initialLoading ? (
-					<div className="flex flex-col items-center justify-center h-64 space-y-4">
+				{loading ? (
+					<motion.div
+						initial={{ opacity: 0 }}
+						animate={{ opacity: 1 }}
+						className="flex justify-center items-center h-64"
+					>
 						<motion.div
-							animate={{
-								rotate: 360,
-							}}
+							animate={{ rotate: 360 }}
 							transition={{
-								duration: 1,
 								repeat: Infinity,
+								duration: 1,
 								ease: 'linear',
 							}}
-							className="w-12 h-12 border-4 border-rose-500 border-t-transparent rounded-full"
+							className="h-8 w-8 border-2 border-blue-500 border-t-transparent rounded-full"
 						/>
-						<motion.p
-							initial={{ opacity: 0 }}
-							animate={{ opacity: 1 }}
-							className="text-gray-500 font-medium"
-						>
-							Loading flight information...
-						</motion.p>
-					</div>
+					</motion.div>
 				) : (
 					<Tabs
 						defaultValue={activeTab}
@@ -212,16 +190,13 @@ export default function SearchPage() {
 								<span className="text-lg">🛬</span>
 								<span className="font-medium">Arrivals</span>
 								{flights.arrivals.length > 0 && (
-									<div className="flex items-center">
-										<span
-											className="ml-2 px-3 py-1 rounded-full text-sm font-semibold
-											data-[state=active]:bg-white/30 data-[state=active]:text-white
-											data-[state=inactive]:bg-gradient-to-r data-[state=inactive]:from-indigo-50 data-[state=inactive]:to-sky-50 data-[state=inactive]:text-indigo-600
-											shadow-sm backdrop-blur-sm border data-[state=active]:border-white/20 data-[state=inactive]:border-indigo-100"
-										>
-											{flights.arrivals.length}
-										</span>
-									</div>
+									<span
+										className="ml-2 px-2.5 py-0.5 rounded-full text-xs font-medium
+											 data-[state=active]:bg-white/20 data-[state=active]:text-white
+											 data-[state=inactive]:bg-rose-100 data-[state=inactive]:text-rose-700"
+									>
+										{flights.arrivals.length}
+									</span>
 								)}
 							</TabsTrigger>
 							<TabsTrigger
@@ -233,16 +208,13 @@ export default function SearchPage() {
 								<span className="text-lg">🛫</span>
 								<span className="font-medium">Departures</span>
 								{flights.departures.length > 0 && (
-									<div className="flex items-center">
-										<span
-											className="ml-2 px-3 py-1 rounded-full text-sm font-semibold
-											data-[state=active]:bg-white/30 data-[state=active]:text-white
-											data-[state=inactive]:bg-gradient-to-r data-[state=inactive]:from-indigo-50 data-[state=inactive]:to-sky-50 data-[state=inactive]:text-indigo-600
-											shadow-sm backdrop-blur-sm border data-[state=active]:border-white/20 data-[state=inactive]:border-indigo-100"
-										>
-											{flights.departures.length}
-										</span>
-									</div>
+									<span
+										className="ml-2 px-2.5 py-0.5 rounded-full text-xs font-medium
+											 data-[state=active]:bg-white/20 data-[state=active]:text-white
+											 data-[state=inactive]:bg-rose-100 data-[state=inactive]:text-rose-700"
+									>
+										{flights.departures.length}
+									</span>
 								)}
 							</TabsTrigger>
 						</TabsList>
