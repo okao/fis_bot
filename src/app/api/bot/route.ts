@@ -16,6 +16,55 @@ const bot = new Bot(token);
 // Define the web app URL
 const webAppUrl = `${process.env.NEXT_PUBLIC_URL}/search`;
 
+// Command handler for /search
+bot.command(['search', 'flights', 'f', 's'], async (ctx) => {
+	await ctx.reply(
+		'🔍 <b>Flight Search</b>\n\n' +
+			'Click below to search flights, set alerts, and track status:',
+		{
+			parse_mode: 'HTML',
+			reply_markup: {
+				inline_keyboard: [
+					[
+						{
+							text: '✈️ Open Flight Search',
+							web_app: { url: webAppUrl },
+						},
+					],
+				],
+			},
+		}
+	);
+});
+
+// Handle any message containing "flight" or "search"
+bot.hears([/flight/i, /search/i, /✈️/], async (ctx) => {
+	await ctx.reply(
+		'🔍 Looking for flights?\n\n' +
+			'Click below to search and track flights:',
+		{
+			parse_mode: 'HTML',
+			reply_markup: {
+				inline_keyboard: [
+					[
+						{
+							text: '✈️ Search Flights',
+							web_app: { url: webAppUrl },
+						},
+					],
+				],
+			},
+		}
+	);
+});
+
+// Add a menu button for quick access
+bot.api.setMyCommands([
+	{ command: 'search', description: 'Search flights and set alerts' },
+	{ command: 'f', description: 'Quick flight search' },
+	{ command: 'help', description: 'Show help message' },
+]);
+
 // Welcome message when user starts the bot
 bot.command('start', async (ctx) => {
 	await ctx.reply(
@@ -39,30 +88,6 @@ bot.command('start', async (ctx) => {
 						{
 							text: '❓ Help',
 							callback_data: 'help',
-						},
-					],
-				],
-			},
-		}
-	);
-});
-
-// Main flight search command
-bot.command(['search', 'flights'], async (ctx) => {
-	await ctx.reply(
-		'🔍 <b>Flight Search</b>\n\n' +
-			'Click below to:\n' +
-			'• Search flights\n' +
-			'• Set alerts\n' +
-			'• Track status',
-		{
-			parse_mode: 'HTML',
-			reply_markup: {
-				inline_keyboard: [
-					[
-						{
-							text: '✈️ Open Flight Search',
-							web_app: { url: webAppUrl },
 						},
 					],
 				],
