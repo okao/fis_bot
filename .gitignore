@@ -41,5 +41,5 @@ next-env.d.ts
 
 # supabase
 src/lib/supabase/prod-ca-2021.crt
-src/lib/supabase/schema.ts
-src/lib/supabase/migrations
+# src/lib/supabase/schema.ts
+# src/lib/supabase/migrations
