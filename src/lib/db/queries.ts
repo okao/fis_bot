@@ -1,6 +1,6 @@
-import { db } from '@/lib/supabase/db';
-import { alerts, type Alert } from '@/lib/supabase/schema';
-import { fetchFlightData } from '@/lib/utils/xml-to-json';
+import { db } from '../../lib/supabase/db';
+import { alerts, type Alert } from '../../lib/supabase/schema';
+import { fetchFlightData } from '../../lib/utils/xml-to-json';
 
 export async function searchFlightsReal(
 	query: string,

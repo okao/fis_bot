@@ -1,5 +1,5 @@
-import { db } from '@/lib/supabase/db';
-import { users } from '@/lib/supabase/schema';
+import { db } from '../../../lib/supabase/db';
+import { users } from '../../../lib/supabase/schema';
 import { NextResponse } from 'next/server';
 
 export const maxDuration = 300; // 5 minutes

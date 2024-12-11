@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/supabase/db';
-import { alerts, users } from '@/lib/supabase/schema';
+import { db } from '../../../lib/supabase/db';
+import { alerts, users } from '../../../lib/supabase/schema';
 import { and, eq } from 'drizzle-orm';
-import { searchFlightsReal } from '@/lib/db/queries';
+import { searchFlightsReal } from '../../../lib/db/queries';
 
 export async function POST(request: Request) {
 	try {

@@ -1,5 +1,5 @@
-import { db } from '@/lib/supabase/db';
-import { alerts, alertNotifications } from '@/lib/supabase/schema';
+import { db } from '../lib/supabase/db';
+import { alerts, alertNotifications } from '../lib/supabase/schema';
 import { and, eq } from 'drizzle-orm';
 import { sendTelegramMessage } from './telegram';
 import { searchFlightsReal } from './db/queries';
