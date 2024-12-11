@@ -21,7 +21,9 @@ bunx drizzle-kit generate --config=drizzle.config.ts
 ## Migrate
 
 ```bash
-bun run src/lib/db/migrate.ts
+# bun run src/lib/db/migrate.ts
+#bunx drizzle-kit generate --out ./supabase/migrations --schema ./src/lib/supabase/schema.ts --dialect postgresql
+bunx drizzle-kit push --config ./drizzle.config.ts
 ```
 
 ## Telegram Bot

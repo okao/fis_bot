@@ -1,82 +1,6 @@
-import { db } from '@/lib/db';
-import { arrivals, departures, alerts } from '@/lib/db/schema';
-import { eq, like, and, or } from 'drizzle-orm';
+import { db } from '@/lib/supabase/db';
+import { alerts, type Alert } from '@/lib/supabase/schema';
 import { fetchFlightData } from '@/lib/utils/xml-to-json';
-export async function searchFlights(
-	query: string,
-	date?: string,
-	userId?: string
-) {
-	console.log('Searching flights with:', { query, date, userId });
-
-	const likeQuery = `%${query.toUpperCase()}%`;
-
-	// Get user's alerts if userId is provided
-	const userAlerts = userId
-		? await db
-				.select()
-				.from(alerts)
-				.where(
-					and(eq(alerts.userId, userId), eq(alerts.isActive, true))
-				)
-		: [];
-
-	console.log('Found user alerts:', userAlerts);
-
-	// Create a Set for faster lookups
-	const alertSet = new Set(
-		userAlerts.map((alert) => `${alert.flightNo}_${alert.date}`)
-	);
-
-	// Get arrivals
-	//https://fis.com.mv/xml/arrive.xml
-	const arrivalFlights = await db
-		.select()
-		.from(arrivals)
-		.where(
-			and(
-				date ? eq(arrivals.date, date) : undefined,
-				query
-					? or(
-							like(arrivals.flightNo, likeQuery),
-							like(arrivals.airlineName, likeQuery),
-							like(arrivals.route1, likeQuery)
-					  )
-					: undefined
-			)
-		)
-		.orderBy(arrivals.scheduled);
-
-	// Get departures
-	//https://fis.com.mv/xml/depart.xml
-	const departureFlights = await db
-		.select()
-		.from(departures)
-		.where(
-			and(
-				date ? eq(departures.date, date) : undefined,
-				query
-					? or(
-							like(departures.flightNo, likeQuery),
-							like(departures.airlineName, likeQuery),
-							like(departures.route1, likeQuery)
-					  )
-					: undefined
-			)
-		)
-		.orderBy(departures.scheduled);
-
-	return {
-		arrivals: arrivalFlights.map((flight) => ({
-			...flight,
-			hasAlert: alertSet.has(`${flight.flightNo}_${flight.date}`),
-		})),
-		departures: departureFlights.map((flight) => ({
-			...flight,
-			hasAlert: alertSet.has(`${flight.flightNo}_${flight.date}`),
-		})),
-	};
-}
 
 export async function searchFlightsReal(
 	query: string,
@@ -84,36 +8,27 @@ export async function searchFlightsReal(
 	userId?: string,
 	type?: 'arrivals' | 'departures'
 ) {
-	console.log('Searching real-time flights with:', {
-		query,
-		date,
-		userId,
-		type,
-	});
-
 	try {
-		// Fetch based on type
+		// Fetch flights
 		const [arrivalFlights, departureFlights] = await Promise.all([
 			type === 'departures' ? [] : fetchFlightData('arrivals'),
 			type === 'arrivals' ? [] : fetchFlightData('departures'),
 		]);
 
-		// Get user's alerts if userId is provided
-		const userAlerts = userId
-			? await db
-					.select()
-					.from(alerts)
-					.where(
-						and(eq(alerts.userId, userId), eq(alerts.isActive, true))
-					)
-			: [];
+		// If userId provided, get user's alerts
+		let userAlerts: Alert[] = [];
+		if (userId) {
+			userAlerts = await db.select().from(alerts);
+		}
 
 		// Create a Set for faster lookups
 		const alertSet = new Set(
-			userAlerts.map((alert) => `${alert.flightNo}_${alert.date}`)
+			userAlerts.map(
+				(alert) => `${alert.flight_no}_${alert.date}_${alert.type}`
+			)
 		);
 
-		// Filter and format flights
+		// Filter and format flights with alert status
 		const filteredArrivals = arrivalFlights
 			.filter(
 				(flight) =>
@@ -129,7 +44,9 @@ export async function searchFlightsReal(
 			)
 			.map((flight) => ({
 				...flight,
-				hasAlert: alertSet.has(`${flight.flightNo}_${flight.date}`),
+				hasAlert: alertSet.has(
+					`${flight.flightNo}_${flight.date}_arrival`
+				),
 			}));
 
 		const filteredDepartures = departureFlights
@@ -147,7 +64,9 @@ export async function searchFlightsReal(
 			)
 			.map((flight) => ({
 				...flight,
-				hasAlert: alertSet.has(`${flight.flightNo}_${flight.date}`),
+				hasAlert: alertSet.has(
+					`${flight.flightNo}_${flight.date}_departure`
+				),
 			}));
 
 		return {
@@ -155,8 +74,7 @@ export async function searchFlightsReal(
 			departures: filteredDepartures,
 		};
 	} catch (error) {
-		console.error('Error searching real-time flights:', error);
-		// Fallback to database search if real-time fails
-		return searchFlights(query, date, userId);
+		console.error('Error searching flights:', error);
+		return { arrivals: [], departures: [] };
 	}
 }

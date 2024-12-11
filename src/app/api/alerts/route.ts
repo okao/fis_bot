@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
-import { alerts, arrivals, departures } from '@/lib/db/schema';
+import { db } from '@/lib/supabase/db';
+import { alerts, users } from '@/lib/supabase/schema';
 import { and, eq } from 'drizzle-orm';
+import { searchFlightsReal } from '@/lib/db/queries';
 
 export async function POST(request: Request) {
 	try {
@@ -15,90 +16,76 @@ export async function POST(request: Request) {
 			type,
 		} = await request.json();
 
-		// Check if alert already exists for this flight, date, user and type
+		// First, ensure user exists or create them
+		const existingUser = await db
+			.select()
+			.from(users)
+			.where(eq(users.id, userId))
+			.limit(1);
+
+		if (!existingUser.length) {
+			await db.insert(users).values({
+				id: userId,
+				platform: 'telegram',
+				username,
+				first_name: firstName,
+				chat_id: chatId,
+				is_active: true,
+			});
+		}
+
+		// Check for existing alert
 		const existingAlert = await db
 			.select()
 			.from(alerts)
 			.where(
 				and(
-					eq(alerts.userId, userId),
-					eq(alerts.flightNo, flightNo),
+					eq(alerts.user_id, userId),
+					eq(alerts.flight_no, flightNo),
 					eq(alerts.date, date),
 					eq(alerts.type, type)
 				)
 			)
 			.limit(1);
 
-		if (existingAlert.length > 0) {
+		if (existingAlert.length > 0 && existingAlert[0].is_active) {
 			return NextResponse.json(
 				{ error: 'Alert already exists' },
 				{ status: 400 }
 			);
 		}
 
-		// Check if flight exists in arrivals or departures
-		const arrival = await db
-			.select()
-			.from(arrivals)
-			.where(
-				and(eq(arrivals.flightNo, flightNo), eq(arrivals.date, date))
-			)
-			.limit(1);
+		// Get flight details
+		const { arrivals, departures } = await searchFlightsReal(
+			flightNo,
+			date,
+			undefined,
+			type as 'arrivals' | 'departures'
+		);
 
-		const departure = await db
-			.select()
-			.from(departures)
-			.where(
-				and(
-					eq(departures.flightNo, flightNo),
-					eq(departures.date, date)
-				)
-			)
-			.limit(1);
-
-		// Create alerts based on flight existence
-		const alertsToCreate = [];
-
-		if (arrival.length > 0) {
-			alertsToCreate.push({
-				id: `${userId}_${flightNo}_${date}_arrival`,
-				userId,
-				chatId,
-				username,
-				firstName,
-				flightNo,
-				date,
-				type: 'arrival',
-			});
-		}
-
-		if (departure.length > 0) {
-			alertsToCreate.push({
-				id: `${userId}_${flightNo}_${date}_departure`,
-				userId,
-				chatId,
-				username,
-				firstName,
-				flightNo,
-				date,
-				type: 'departure',
-			});
-		}
-
-		if (alertsToCreate.length === 0) {
+		const flight = type === 'arrival' ? arrivals[0] : departures[0];
+		if (!flight) {
 			return NextResponse.json(
-				{ error: 'No valid flights found' },
+				{ error: 'Flight not found' },
 				{ status: 404 }
 			);
 		}
 
-		// Insert alerts
-		await db.insert(alerts).values(alertsToCreate);
-
-		return NextResponse.json({
-			success: true,
-			alertsCreated: alertsToCreate.map((a) => a.type),
+		// Create alert
+		await db.insert(alerts).values({
+			id: `${userId}_${flightNo}_${date}_${type}`,
+			user_id: userId,
+			chat_id: chatId,
+			username,
+			firstName,
+			flight_no: flightNo,
+			date,
+			type,
+			flight_status: flight.status,
+			is_active: true,
 		});
+
+		return NextResponse.json({ success: true });
 	} catch (error) {
 		console.error('Error creating alert:', error);
 		return NextResponse.json(
@@ -112,18 +99,17 @@ export async function DELETE(request: Request) {
 	try {
 		const { flightNo, date, userId, type } = await request.json();
 
-		// Delete specific alert type if provided, otherwise delete both
-		const deleteConditions = [
-			eq(alerts.userId, userId),
-			eq(alerts.flightNo, flightNo),
-			eq(alerts.date, date),
-		];
-
-		if (type) {
-			deleteConditions.push(eq(alerts.type, type));
-		}
-
-		await db.delete(alerts).where(and(...deleteConditions));
+		await db
+			.update(alerts)
+			.set({ is_active: false })
+			.where(
+				and(
+					eq(alerts.user_id, userId),
+					eq(alerts.flight_no, flightNo),
+					eq(alerts.date, date),
+					type ? eq(alerts.type, type) : undefined
+				)
+			);
 
 		return NextResponse.json({ success: true });
 	} catch (error) {

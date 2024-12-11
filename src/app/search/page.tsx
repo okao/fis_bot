@@ -38,7 +38,8 @@ export default function SearchPage() {
 		departures: Flight[];
 	}>({ arrivals: [], departures: [] });
 	const [initialLoading, setInitialLoading] = useState(true);
-	const REFRESH_INTERVAL = 30000; // 30 seconds
+	// const REFRESH_INTERVAL = 30000; // 30 seconds
+	const REFRESH_INTERVAL = 300000000; // 3000 seconds
 
 	useEffect(() => {
 		console.log('Search Page Telegram Context:', {
@@ -53,34 +54,17 @@ export default function SearchPage() {
 	useEffect(() => {
 		const refreshData = async () => {
 			try {
-				// Fetch both arrivals and departures simultaneously
-				const [arrivalsData, departuresData] = await Promise.all([
-					fetch(
-						`/api/search/real?${new URLSearchParams({
-							q: query,
-							date: date,
-							...(isInTelegram && user?.id
-								? { userId: user.id.toString() }
-								: {}),
-							type: 'arrivals',
-						})}`
-					).then((res) => res.json()),
-					fetch(
-						`/api/search/real?${new URLSearchParams({
-							q: query,
-							date: date,
-							...(isInTelegram && user?.id
-								? { userId: user.id.toString() }
-								: {}),
-							type: 'departures',
-						})}`
-					).then((res) => res.json()),
-				]);
-
-				setFlights({
-					arrivals: arrivalsData.arrivals,
-					departures: departuresData.departures,
-				});
+				const response = await fetch(
+					`/api/search/real?${new URLSearchParams({
+						q: query,
+						date: date,
+						...(isInTelegram && user?.id
+							? { userId: user.id.toString() }
+							: {}),
+					})}`
+				);
+				const data = await response.json();
+				setFlights(data);
 			} catch (error) {
 				console.error('Refresh failed:', error);
 			} finally {
@@ -114,180 +98,182 @@ export default function SearchPage() {
 	};
 
 	return (
-		<motion.div
-			initial={{ opacity: 0 }}
-			animate={{ opacity: 1 }}
-			className="min-h-screen bg-gradient-to-br from-rose-50 via-white to-red-50"
-		>
-			<div className="container mx-auto px-4 py-8">
-				<AnimatePresence>
-					{isInTelegram && user && (
-						<motion.div
-							initial={{ opacity: 0, y: -20 }}
-							animate={{ opacity: 1, y: 0 }}
-							exit={{ opacity: 0, y: -20 }}
-							className="mb-6 p-4 bg-gradient-to-r from-red-600 to-rose-500 rounded-xl shadow-lg"
+		<div>
+			<motion.div
+				initial={{ opacity: 0 }}
+				animate={{ opacity: 1 }}
+				className="min-h-screen bg-gradient-to-br from-rose-50 via-white to-red-50"
+			>
+				<div className="container mx-auto px-4 py-8">
+					<AnimatePresence>
+						{isInTelegram && user && (
+							<motion.div
+								initial={{ opacity: 0, y: -20 }}
+								animate={{ opacity: 1, y: 0 }}
+								exit={{ opacity: 0, y: -20 }}
+								className="mb-6 p-4 bg-gradient-to-r from-red-600 to-rose-500 rounded-xl shadow-lg"
+							>
+								<p className="text-white text-lg">
+									👋 Welcome{' '}
+									<span className="font-semibold">
+										{user.first_name}
+									</span>
+									! Set alerts for flights you want to track.
+								</p>
+							</motion.div>
+						)}
+					</AnimatePresence>
+
+					<div className="mb-8">
+						<h1 className="text-3xl font-bold bg-gradient-to-r from-red-600 to-rose-600 text-transparent bg-clip-text mb-6 flex items-center">
+							<span className="text-red-600 mr-2">✈</span>
+							Flight Information
+						</h1>
+						<div className="grid gap-4 md:grid-cols-2">
+							<input
+								type="text"
+								value={query}
+								onChange={(e) => setQuery(e.target.value)}
+								placeholder="Search by flight number, airline, or route..."
+								className="w-full p-4 rounded-xl border border-indigo-100
+										 bg-white/80 backdrop-blur-sm text-gray-800 placeholder-gray-400
+										 focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400
+										 outline-none transition-all shadow-sm hover:border-indigo-200"
+							/>
+							<input
+								type="date"
+								value={format(
+									new Date(
+										parseInt(date.substring(0, 4)),
+										parseInt(date.substring(4, 6)) - 1,
+										parseInt(date.substring(6, 8))
+									),
+									'yyyy-MM-dd'
+								)}
+								onChange={handleDateChange}
+								className="w-full p-4 rounded-xl border border-gray-200
+										 bg-white text-gray-800
+										 focus:ring-2 focus:ring-blue-200 focus:border-blue-500
+										 outline-none transition-all shadow-sm"
+							/>
+						</div>
+					</div>
+
+					{initialLoading ? (
+						<div className="flex flex-col items-center justify-center h-64 space-y-4">
+							<motion.div
+								animate={{
+									rotate: 360,
+								}}
+								transition={{
+									duration: 1,
+									repeat: Infinity,
+									ease: 'linear',
+								}}
+								className="w-12 h-12 border-4 border-rose-500 border-t-transparent rounded-full"
+							/>
+							<motion.p
+								initial={{ opacity: 0 }}
+								animate={{ opacity: 1 }}
+								className="text-gray-500 font-medium"
+							>
+								Loading flight information...
+							</motion.p>
+						</div>
+					) : (
+						<Tabs
+							defaultValue={activeTab}
+							value={activeTab}
+							onValueChange={setActiveTab}
+							className="w-full"
 						>
-							<p className="text-white text-lg">
-								👋 Welcome{' '}
-								<span className="font-semibold">
-									{user.first_name}
-								</span>
-								! Set alerts for flights you want to track.
-							</p>
-						</motion.div>
+							<TabsList className="grid w-full grid-cols-2 gap-2 mb-8 p-2">
+								<TabsTrigger
+									value="arrivals"
+									className="relative flex items-center justify-center gap-2 px-6 py-3 rounded-xl transition-all
+											 data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-rose-500 data-[state=active]:text-white data-[state=active]:shadow-md
+											 data-[state=inactive]:bg-white/80 data-[state=inactive]:text-gray-600 data-[state=inactive]:hover:bg-white data-[state=inactive]:shadow-sm"
+								>
+									<span className="text-lg">🛬</span>
+									<span className="font-medium">Arrivals</span>
+									{flights.arrivals.length > 0 && (
+										<div className="flex items-center">
+											<span
+												className="ml-2 px-3 py-1 rounded-full text-sm font-semibold
+												data-[state=active]:bg-white/20 data-[state=active]:text-white
+												data-[state=inactive]:bg-rose-100/80 data-[state=inactive]:text-rose-600
+												shadow-sm backdrop-blur-sm border border-white/10"
+											>
+												{flights.arrivals.length}
+											</span>
+										</div>
+									)}
+								</TabsTrigger>
+								<TabsTrigger
+									value="departures"
+									className="relative flex items-center justify-center gap-2 px-6 py-3 rounded-xl transition-all
+											 data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-rose-500 data-[state=active]:text-white data-[state=active]:shadow-md
+											 data-[state=inactive]:bg-white/80 data-[state=inactive]:text-gray-600 data-[state=inactive]:hover:bg-white data-[state=inactive]:shadow-sm"
+								>
+									<span className="text-lg">🛫</span>
+									<span className="font-medium">Departures</span>
+									{flights.departures.length > 0 && (
+										<div className="flex items-center">
+											<span
+												className="ml-2 px-3 py-1 rounded-full text-sm font-semibold
+												data-[state=active]:bg-white/20 data-[state=active]:text-white
+												data-[state=inactive]:bg-rose-100/80 data-[state=inactive]:text-rose-600
+												shadow-sm backdrop-blur-sm border border-white/10"
+											>
+												{flights.departures.length}
+											</span>
+										</div>
+									)}
+								</TabsTrigger>
+							</TabsList>
+
+							<TabsContent value="arrivals" className="space-y-3">
+								{flights.arrivals.length === 0 ? (
+									<p className="text-gray-500 text-center py-8 bg-blue-50/50 rounded-lg border border-blue-100">
+										No arrival flights found
+									</p>
+								) : (
+									sortFlightsByCompletion(flights.arrivals).map(
+										(flight) => (
+											<FlightCard
+												key={`${flight.flightNo}_${date}`}
+												flight={flight}
+												type="arrival"
+												setFlights={setFlights}
+											/>
+										)
+									)
+								)}
+							</TabsContent>
+
+							<TabsContent value="departures" className="space-y-3">
+								{flights.departures.length === 0 ? (
+									<p className="text-gray-500 text-center py-8 bg-blue-50/50 rounded-lg border border-blue-100">
+										No departure flights found
+									</p>
+								) : (
+									sortFlightsByCompletion(flights.departures).map(
+										(flight) => (
+											<FlightCard
+												key={`${flight.flightNo}_${date}`}
+												flight={flight}
+												type="departure"
+												setFlights={setFlights}
+											/>
+										)
+									)
+								)}
+							</TabsContent>
+						</Tabs>
 					)}
-				</AnimatePresence>
-
-				<div className="mb-8">
-					<h1 className="text-3xl font-bold bg-gradient-to-r from-red-600 to-rose-600 text-transparent bg-clip-text mb-6 flex items-center">
-						<span className="text-red-600 mr-2">✈</span>
-						Flight Information
-					</h1>
-					<div className="grid gap-4 md:grid-cols-2">
-						<input
-							type="text"
-							value={query}
-							onChange={(e) => setQuery(e.target.value)}
-							placeholder="Search by flight number, airline, or route..."
-							className="w-full p-4 rounded-xl border border-indigo-100
-									 bg-white/80 backdrop-blur-sm text-gray-800 placeholder-gray-400
-									 focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400
-									 outline-none transition-all shadow-sm hover:border-indigo-200"
-						/>
-						<input
-							type="date"
-							value={format(
-								new Date(
-									parseInt(date.substring(0, 4)),
-									parseInt(date.substring(4, 6)) - 1,
-									parseInt(date.substring(6, 8))
-								),
-								'yyyy-MM-dd'
-							)}
-							onChange={handleDateChange}
-							className="w-full p-4 rounded-xl border border-gray-200
-                                     bg-white text-gray-800
-                                     focus:ring-2 focus:ring-blue-200 focus:border-blue-500
-                                     outline-none transition-all shadow-sm"
-						/>
-					</div>
 				</div>
-
-				{initialLoading ? (
-					<div className="flex flex-col items-center justify-center h-64 space-y-4">
-						<motion.div
-							animate={{
-								rotate: 360,
-							}}
-							transition={{
-								duration: 1,
-								repeat: Infinity,
-								ease: 'linear',
-							}}
-							className="w-12 h-12 border-4 border-rose-500 border-t-transparent rounded-full"
-						/>
-						<motion.p
-							initial={{ opacity: 0 }}
-							animate={{ opacity: 1 }}
-							className="text-gray-500 font-medium"
-						>
-							Loading flight information...
-						</motion.p>
-					</div>
-				) : (
-					<Tabs
-						defaultValue={activeTab}
-						value={activeTab}
-						onValueChange={setActiveTab}
-						className="w-full"
-					>
-						<TabsList className="grid w-full grid-cols-2 gap-2 mb-8 p-2">
-							<TabsTrigger
-								value="arrivals"
-								className="relative flex items-center justify-center gap-2 px-6 py-3 rounded-xl transition-all
-										 data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-rose-500 data-[state=active]:text-white data-[state=active]:shadow-md
-										 data-[state=inactive]:bg-white/80 data-[state=inactive]:text-gray-600 data-[state=inactive]:hover:bg-white data-[state=inactive]:shadow-sm"
-							>
-								<span className="text-lg">🛬</span>
-								<span className="font-medium">Arrivals</span>
-								{flights.arrivals.length > 0 && (
-									<div className="flex items-center">
-										<span
-											className="ml-2 px-3 py-1 rounded-full text-sm font-semibold
-											data-[state=active]:bg-white/30 data-[state=active]:text-white
-											data-[state=inactive]:bg-gradient-to-r data-[state=inactive]:from-indigo-50 data-[state=inactive]:to-sky-50 data-[state=inactive]:text-indigo-600
-											shadow-sm backdrop-blur-sm border data-[state=active]:border-white/20 data-[state=inactive]:border-indigo-100"
-										>
-											{flights.arrivals.length}
-										</span>
-									</div>
-								)}
-							</TabsTrigger>
-							<TabsTrigger
-								value="departures"
-								className="relative flex items-center justify-center gap-2 px-6 py-3 rounded-xl transition-all
-										 data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-rose-500 data-[state=active]:text-white data-[state=active]:shadow-md
-										 data-[state=inactive]:bg-white/80 data-[state=inactive]:text-gray-600 data-[state=inactive]:hover:bg-white data-[state=inactive]:shadow-sm"
-							>
-								<span className="text-lg">🛫</span>
-								<span className="font-medium">Departures</span>
-								{flights.departures.length > 0 && (
-									<div className="flex items-center">
-										<span
-											className="ml-2 px-3 py-1 rounded-full text-sm font-semibold
-											data-[state=active]:bg-white/30 data-[state=active]:text-white
-											data-[state=inactive]:bg-gradient-to-r data-[state=inactive]:from-indigo-50 data-[state=inactive]:to-sky-50 data-[state=inactive]:text-indigo-600
-											shadow-sm backdrop-blur-sm border data-[state=active]:border-white/20 data-[state=inactive]:border-indigo-100"
-										>
-											{flights.departures.length}
-										</span>
-									</div>
-								)}
-							</TabsTrigger>
-						</TabsList>
-
-						<TabsContent value="arrivals" className="space-y-3">
-							{flights.arrivals.length === 0 ? (
-								<p className="text-gray-500 text-center py-8 bg-blue-50/50 rounded-lg border border-blue-100">
-									No arrival flights found
-								</p>
-							) : (
-								sortFlightsByCompletion(flights.arrivals).map(
-									(flight) => (
-										<FlightCard
-											key={`${flight.flightNo}_${date}`}
-											flight={flight}
-											type="arrival"
-											setFlights={setFlights}
-										/>
-									)
-								)
-							)}
-						</TabsContent>
-
-						<TabsContent value="departures" className="space-y-3">
-							{flights.departures.length === 0 ? (
-								<p className="text-gray-500 text-center py-8 bg-blue-50/50 rounded-lg border border-blue-100">
-									No departure flights found
-								</p>
-							) : (
-								sortFlightsByCompletion(flights.departures).map(
-									(flight) => (
-										<FlightCard
-											key={`${flight.flightNo}_${date}`}
-											flight={flight}
-											type="departure"
-											setFlights={setFlights}
-										/>
-									)
-								)
-							)}
-						</TabsContent>
-					</Tabs>
-				)}
-			</div>
-		</motion.div>
+			</motion.div>
+		</div>
 	);
 }
 
@@ -348,6 +334,7 @@ function FlightCard({
 					chatId: chatId,
 					username: user.username,
 					firstName: user.first_name,
+					type: type,
 				}),
 			});
 
@@ -357,7 +344,9 @@ function FlightCard({
 					date: flight.date,
 					userId: user.id.toString(),
 				});
-				const searchRes = await fetch(`/api/search?${queryParams}`);
+				const searchRes = await fetch(
+					`/api/search/real?${queryParams}`
+				);
 				const data = await searchRes.json();
 				setFlights(data);
 
@@ -386,7 +375,7 @@ function FlightCard({
 
 		const statusMap: Record<string, string> = {
 			DP: 'Departed',
-			DE: 'Departed',
+			DE: 'Delayed',
 			GZ: 'Gate Closed',
 			AR: 'Arrived',
 			CK: 'Checked-in',
@@ -399,7 +388,7 @@ function FlightCard({
 			LA: 'Landed',
 		};
 
-		const completedStatuses = ['DP', 'DE', 'AR', 'LA'];
+		const completedStatuses = ['DP', 'AR', 'LA'];
 		if (completedStatuses.includes(status)) {
 			return `✅ ${statusMap[status]}`;
 		}
@@ -410,7 +399,7 @@ function FlightCard({
 	const getStatusColor = (status: string | null) => {
 		if (!status) return 'text-blue-600 bg-blue-50 border-blue-100';
 
-		const completedStatuses = ['DP', 'DE', 'AR', 'LA'];
+		const completedStatuses = ['DP', 'AR', 'LA'];
 		if (completedStatuses.includes(status)) {
 			return 'text-gray-600 bg-gray-50 border-gray-100';
 		}
@@ -420,6 +409,8 @@ function FlightCard({
 				return 'text-amber-600 bg-amber-50 border-amber-100';
 			case 'CN':
 				return 'text-red-600 bg-red-50 border-red-100';
+			case 'DE':
+				return 'text-amber-600 bg-amber-50 border-amber-100';
 			case 'BD':
 			case 'CK':
 			case 'GZ':
